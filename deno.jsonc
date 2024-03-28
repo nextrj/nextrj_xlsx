@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  // no deno.lock file
+  "lock": false,
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true
+  },
+  "fmt": {
+    // 2 spaces indent and max 120 chars each line
+    "useTabs": false,
+    "lineWidth": 120,
+    "indentWidth": 2,
+    // single quote instead of double quote
+    "singleQuote": true,
+    // no suffix semi-colon
+    "semiColons": false,
+    "proseWrap": "preserve"
+  },
+  "tasks": {
+    "test": "deno test -A"
+  }
+}

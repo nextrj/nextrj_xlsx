@@ -1,0 +1,13 @@
+{
+  "deno.enable": true,
+  "deno.lint": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "html.format.indentInnerHtml": false,
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features",
+    "editor.detectIndentation": false,
+    "editor.indentSize": 2
+  }
+}
