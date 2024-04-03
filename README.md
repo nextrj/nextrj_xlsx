@@ -11,7 +11,8 @@ Click [here](./assets/sample.xlsx) to download excel sample file.
 ![](./assets/sample_simple_table.png)
 
 ```ts
-import { genSingleSheetWorkbook, HeadColumn } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
+import { genSingleSheetWorkbook } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
+import type { HeadColumn } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
 
 // define head-column
 const headColumns: HeadColumn[] = [

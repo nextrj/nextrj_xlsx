@@ -1,4 +1,4 @@
-import { ExcelJS, PageSetup, recursiveAssign, Style, Worksheet, WorksheetProperties, WorksheetView } from './deps.ts'
+import { ExcelJS, recursiveAssign } from './deps.ts'
 
 export type WorkbookProperties = {
   subject?: string
@@ -12,29 +12,29 @@ export type WorkbookProperties = {
 }
 export type WorksheetOptions = {
   name?: string
-  properties?: Partial<WorksheetProperties>
-  pageSetup?: Partial<PageSetup>
-  views?: Partial<WorksheetView>[]
+  properties?: Partial<ExcelJS.WorksheetProperties>
+  pageSetup?: Partial<ExcelJS.PageSetup>
+  views?: Partial<ExcelJS.WorksheetView>[]
   table?: Table
 }
 export type Table = {
   headColumns: HeadColumn[]
   // deno-lint-ignore no-explicit-any
   dataRows: Record<string, any>[]
-  caption?: string | { value: string; style?: Partial<Style> }
-  subCaption?: string | { value: string; style?: Partial<Style> }
-  cellStyle?: Partial<Style>
-  headCellStyle?: Partial<Style>
-  dataCellStyle?: Partial<Style>
+  caption?: string | { value: string; style?: Partial<ExcelJS.Style> }
+  subCaption?: string | { value: string; style?: Partial<ExcelJS.Style> }
+  cellStyle?: Partial<ExcelJS.Style>
+  headCellStyle?: Partial<ExcelJS.Style>
+  dataCellStyle?: Partial<ExcelJS.Style>
 }
 export type HeadColumn = {
   id?: string
   label?: string
   width?: number
   value?: ValueMapper
-  cellStyle?: Partial<Style>
-  headCellStyle?: Partial<Style>
-  dataCellStyle?: Partial<Style>
+  cellStyle?: Partial<ExcelJS.Style>
+  headCellStyle?: Partial<ExcelJS.Style>
+  dataCellStyle?: Partial<ExcelJS.Style>
   pid?: string
   children?: HeadColumn[]
   /** The inner ext params */
@@ -68,15 +68,15 @@ export async function genSingleSheetWorkbook({
   headColumns: HeadColumn[]
   // deno-lint-ignore no-explicit-any
   dataRows: Record<string, any>[]
-  caption?: string | { value: string; style?: Partial<Style> }
-  subCaption?: string | { value: string; style?: Partial<Style> }
-  cellStyle?: Partial<Style>
-  headCellStyle?: Partial<Style>
-  dataCellStyle?: Partial<Style>
+  caption?: string | { value: string; style?: Partial<ExcelJS.Style> }
+  subCaption?: string | { value: string; style?: Partial<ExcelJS.Style> }
+  cellStyle?: Partial<ExcelJS.Style>
+  headCellStyle?: Partial<ExcelJS.Style>
+  dataCellStyle?: Partial<ExcelJS.Style>
   sheetName?: string
-  sheetProperties?: Partial<WorksheetProperties>
-  sheetPageSetup?: Partial<PageSetup>
-  sheetView?: Partial<WorksheetView>
+  sheetProperties?: Partial<ExcelJS.WorksheetProperties>
+  sheetPageSetup?: Partial<ExcelJS.PageSetup>
+  sheetView?: Partial<ExcelJS.WorksheetView>
   bookProperties?: WorkbookProperties
 }): Promise<ExcelJS.Workbook> {
   return await genWorkbook([{
@@ -162,7 +162,7 @@ export async function genWorkbook(sheets: WorksheetOptions[], { bookProperties }
 
       // gen head-cells
       if (!table.headColumns.length) throw new Error('headColumns could not be null or empty.')
-      const tableHeadCellStyle: Partial<Style> = table.cellStyle || table.headCellStyle
+      const tableHeadCellStyle: Partial<ExcelJS.Style> = table.cellStyle || table.headCellStyle
         ? recursiveAssign({}, table.cellStyle || {}, table.headCellStyle || {})
         : undefined
       recursiveGenHeadCell(table.headColumns, ws, tableHeadCellStyle)
@@ -230,7 +230,11 @@ function recursiveGenRowspan(column: HeadColumn, rowspan: number): void {
 }
 
 /** recursive gen head cells */
-function recursiveGenHeadCell(columns: HeadColumn[], ws: Worksheet, parentHeadCellStyle?: Partial<Style>): void {
+function recursiveGenHeadCell(
+  columns: HeadColumn[],
+  ws: ExcelJS.Worksheet,
+  parentHeadCellStyle?: Partial<ExcelJS.Style>,
+): void {
   columns.forEach((column) => {
     // set cell value
     const row = column.ext!.row
@@ -265,7 +269,7 @@ function recursiveGenHeadCell(columns: HeadColumn[], ws: Worksheet, parentHeadCe
   })
 }
 
-function genDataRow(table: Table, ws: Worksheet) {
+function genDataRow(table: Table, ws: ExcelJS.Worksheet) {
   const tableDataCellStyle = table.cellStyle || table.dataCellStyle
     ? recursiveAssign({}, table.cellStyle || {}, table.dataCellStyle)
     : undefined
