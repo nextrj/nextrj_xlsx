@@ -1,5 +1,9 @@
 # nextrj_xlsx changelog
 
+## 0.3.0 2024-04-04
+
+- Change type `ValueMapper` sinature
+
 ## 0.2.0 2024-04-03
 
 - Change to use ExcelJS namespace directly
