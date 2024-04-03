@@ -31,7 +31,7 @@ export type HeadColumn = {
   id?: string
   label?: string
   width?: number
-  value?: ValueMapper
+  valueMapper?: ValueMapper
   cellStyle?: Partial<ExcelJS.Style>
   headCellStyle?: Partial<ExcelJS.Style>
   dataCellStyle?: Partial<ExcelJS.Style>
@@ -289,7 +289,7 @@ function genDataRow(table: Table, ws: ExcelJS.Worksheet) {
       if (!column.children) {
         // set cell value
         const cell = ws.getCell(nextRow, nextCol)
-        if (column.value) cell.value = column.value(dataRow)
+        if (column.valueMapper) cell.value = column.valueMapper(dataRow)
         else if (column.id) cell.value = dataRow[column.id]
 
         // set cell style
@@ -320,7 +320,7 @@ function genDataRow(table: Table, ws: ExcelJS.Worksheet) {
             const pid = childColumn.pid || column.id
             const childDataRow = pid ? dataRow[pid]?.[i] : dataRow
             const cell = ws.getCell(nextRow + i, childColumn.ext?.col!)
-            if (childColumn.value) cell.value = childColumn.value(childDataRow)
+            if (childColumn.valueMapper) cell.value = childColumn.valueMapper(childDataRow)
             else if (childColumn.id) cell.value = childDataRow?.[childColumn.id!]
 
             // set cell style

@@ -16,7 +16,7 @@ import type { HeadColumn } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
 
 // define head-column
 const headColumns: HeadColumn[] = [
-  { id: 'name', label: 'Name', width: 15, value: (row) => `${row.firstName} ${row.lastName}` },
+  { id: 'name', label: 'Name', width: 15, valueMapper: (row) => `${row.firstName} ${row.lastName}` },
   { id: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
   { id: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
   { id: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
@@ -127,7 +127,7 @@ const response = new Response(await workbook.xlsx.writeBuffer(), {
 ```ts
 // define head-column
 const headColumns: HeadColumn[] = [
-  { id: 'teacher', label: 'Teacher', width: 15, value: (row) => `${row.firstName} ${row.lastName}` },
+  { id: 'teacher', label: 'Teacher', width: 15, valueMapper: (row) => `${row.firstName} ${row.lastName}` },
   {
     id: 'workdate',
     label: 'Workdate',
