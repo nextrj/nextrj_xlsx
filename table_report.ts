@@ -41,8 +41,11 @@ export type HeadColumn = {
   ext?: HeadColumnExtParams
 }
 /** Map the origin value to anthor value */
-// deno-lint-ignore no-explicit-any
-export type ValueMapper = (row: Record<string, any>) => any
+export type ValueMapper =
+  // deno-lint-ignore no-explicit-any
+  | ((value: any) => any)
+  // deno-lint-ignore no-explicit-any
+  | ((value: any, id: string, row: Record<string, any>) => any)
 type HeadColumnExtParams = {
   row: number
   col: number
@@ -289,7 +292,7 @@ function genDataRow(table: Table, ws: ExcelJS.Worksheet) {
       if (!column.children) {
         // set cell value
         const cell = ws.getCell(nextRow, nextCol)
-        if (column.valueMapper) cell.value = column.valueMapper(dataRow)
+        if (column.valueMapper) cell.value = column.valueMapper(dataRow[column.id!], column.id!, dataRow)
         else if (column.id) cell.value = dataRow[column.id]
 
         // set cell style
@@ -320,8 +323,9 @@ function genDataRow(table: Table, ws: ExcelJS.Worksheet) {
             const pid = childColumn.pid || column.id
             const childDataRow = pid ? dataRow[pid]?.[i] : dataRow
             const cell = ws.getCell(nextRow + i, childColumn.ext?.col!)
-            if (childColumn.valueMapper) cell.value = childColumn.valueMapper(childDataRow)
-            else if (childColumn.id) cell.value = childDataRow?.[childColumn.id!]
+            if (childColumn.valueMapper) {
+              cell.value = childColumn.valueMapper(childDataRow?.[childColumn.id!], childColumn.id!, childDataRow)
+            } else if (childColumn.id) cell.value = childDataRow?.[childColumn.id!]
 
             // set cell style
             if (childColumnDataCellStyle) cell.style = childColumnDataCellStyle
