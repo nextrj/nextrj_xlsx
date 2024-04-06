@@ -5,3 +5,4 @@ dist
 *.log
 try
 try*.*
+.DS_Store
