@@ -1,67 +1,314 @@
-import { assertEquals, pathExistsSync } from './deps.ts'
-import { genHeadColumnExtParams, genSingleSheetWorkbook, HeadColumn } from './table_report.ts'
+import { assertEquals, ExcelJS, pathExistsSync } from './deps.ts'
+import { Table } from './mod.ts'
+import {
+  convertCacadeArrayKey2ObjectKey,
+  DataRow,
+  GroupColumn,
+  recursiveGenDataRowExtProperties,
+} from './table_report.ts'
+import {
+  CellStyle,
+  flattenColumnByChildren,
+  genColumnExtProperties,
+  genSingleSheetWorkbook,
+  HeadColumn,
+  recursiveGenDataRowCell,
+} from './table_report.ts'
 
 if (!pathExistsSync('temp')) Deno.mkdirSync('temp')
 
-Deno.test('genHeadColumnExtParams', () => {
-  let cs: HeadColumn[]
+Deno.test('genColumnExtProperties', () => {
+  let t: Table
+  const startRow = 1
 
   // case 1
-  genHeadColumnExtParams(cs = [{}], 1)
-  assertEquals(cs.length, 1)
-  assertEquals(cs[0].ext, { row: 1, col: 1, rowspan: 1, colspan: 1, depth: 1 })
+  t = { headColumns: [{ key: 'k0' }] }
+  genColumnExtProperties(t.headColumns, { startRow })
+  assertEquals(t.headColumns.length, 1)
+  assertEquals(t.headColumns[0].ext, { row: 1, col: 1, rowspan: 1, colspan: 1, depth: 1 })
 
   // case 2
-  genHeadColumnExtParams(cs = [{ children: [{}] }], 1)
-  assertEquals(cs.length, 1)
-  assertEquals(cs[0].ext, { row: 1, col: 1, rowspan: 2, colspan: 1, depth: 2 })
-  assertEquals(cs[0].children?.length, 1)
-  assertEquals(cs[0].children?.[0]?.ext, { row: 2, col: 1, rowspan: 1, colspan: 1, depth: 1 })
+  t = { headColumns: [{ children: [{ key: 'k0' }] }] }
+  genColumnExtProperties(t.headColumns, { startRow })
+  assertEquals(t.headColumns.length, 1)
+  let c = t.headColumns[0] as GroupColumn
+  assertEquals(c.ext, { row: 1, col: 1, rowspan: 2, colspan: 1, depth: 2 })
+  assertEquals(c.children?.length, 1)
+  assertEquals(c.children?.[0]?.ext, { row: 2, col: 1, rowspan: 1, colspan: 1, depth: 1 })
 
   // case 3
-  genHeadColumnExtParams(cs = [{ children: [{}, {}] }], 1)
-  assertEquals(cs.length, 1)
-  assertEquals(cs[0].ext, { row: 1, col: 1, rowspan: 2, colspan: 2, depth: 2 })
-  assertEquals(cs[0].children?.length, 2)
-  assertEquals(cs[0].children?.[0]?.ext, { row: 2, col: 1, rowspan: 1, colspan: 1, depth: 1 })
-  assertEquals(cs[0].children?.[1]?.ext, { row: 2, col: 2, rowspan: 1, colspan: 1, depth: 1 })
+  t = { headColumns: [{ children: [{ key: 'k0' }, { key: 'k1' }] }] }
+  genColumnExtProperties(t.headColumns, { startRow })
+  assertEquals(t.headColumns.length, 1)
+  c = t.headColumns[0] as GroupColumn
+  assertEquals(c.ext, { row: 1, col: 1, rowspan: 2, colspan: 2, depth: 2 })
+  assertEquals(c.children?.length, 2)
+  assertEquals(c.children?.[0]?.ext, { row: 2, col: 1, rowspan: 1, colspan: 1, depth: 1 })
+  assertEquals(c.children?.[1]?.ext, { row: 2, col: 2, rowspan: 1, colspan: 1, depth: 1 })
 
   // case 4
-  genHeadColumnExtParams(cs = [{}, { children: [{}, {}] }], 1)
-  assertEquals(cs.length, 2)
-  assertEquals(cs[0].ext, { row: 1, col: 1, rowspan: 2, colspan: 1, depth: 1 })
-  assertEquals(cs[1].ext, { row: 1, col: 2, rowspan: 2, colspan: 2, depth: 2 })
-  assertEquals(cs[1].children?.length, 2)
-  assertEquals(cs[1].children?.[0]?.ext, { row: 2, col: 2, rowspan: 1, colspan: 1, depth: 1 })
-  assertEquals(cs[1].children?.[1]?.ext, { row: 2, col: 3, rowspan: 1, colspan: 1, depth: 1 })
+  t = { headColumns: [{ key: 'k0' }, { children: [{ key: 'k10' }, { key: 'k11' }] }] }
+  genColumnExtProperties(t.headColumns, { startRow })
+  assertEquals(t.headColumns.length, 2)
+  assertEquals(t.headColumns[0].ext, { row: 1, col: 1, rowspan: 2, colspan: 1, depth: 1 })
+  c = t.headColumns[1] as GroupColumn
+  assertEquals(c.ext, { row: 1, col: 2, rowspan: 2, colspan: 2, depth: 2 })
+  assertEquals(c.children?.length, 2)
+  assertEquals(c.children?.[0]?.ext, { row: 2, col: 2, rowspan: 1, colspan: 1, depth: 1 })
+  assertEquals(c.children?.[1]?.ext, { row: 2, col: 3, rowspan: 1, colspan: 1, depth: 1 })
 
   // case 5
-  genHeadColumnExtParams(cs = [{}, { children: [{}, { children: [{}, {}] }] }], 1)
-  assertEquals(cs.length, 2)
-  assertEquals(cs[0].ext, { row: 1, col: 1, rowspan: 3, colspan: 1, depth: 1 })
-  assertEquals(cs[1].ext, { row: 1, col: 2, rowspan: 3, colspan: 3, depth: 3 })
-  assertEquals(cs[1].children?.length, 2)
-  assertEquals(cs[1].children?.[0]?.ext, { row: 2, col: 2, rowspan: 2, colspan: 1, depth: 1 })
-  assertEquals(cs[1].children?.[1]?.ext, { row: 2, col: 3, rowspan: 2, colspan: 2, depth: 2 })
-  assertEquals(cs[1].children?.[1]?.children?.length, 2)
-  assertEquals(cs[1].children?.[1]?.children?.[0]?.ext, { row: 3, col: 3, rowspan: 1, colspan: 1, depth: 1 })
-  assertEquals(cs[1].children?.[1]?.children?.[1]?.ext, { row: 3, col: 4, rowspan: 1, colspan: 1, depth: 1 })
+  t = {
+    headColumns: [{ key: 'k0' }, { children: [{ key: 'k10' }, { children: [{ key: 'k110' }, { key: 'k111' }] }] }],
+  }
+  genColumnExtProperties(t.headColumns, { startRow })
+  assertEquals(t.headColumns.length, 2)
+  assertEquals(t.headColumns[0].ext, { row: 1, col: 1, rowspan: 3, colspan: 1, depth: 1 })
+  assertEquals(t.headColumns[1].ext, { row: 1, col: 2, rowspan: 3, colspan: 3, depth: 3 })
+  c = t.headColumns[1] as GroupColumn
+  assertEquals(c.children?.length, 2)
+  assertEquals(c.children?.[0]?.ext, { row: 2, col: 2, rowspan: 2, colspan: 1, depth: 1 })
+  assertEquals(c.children?.[1]?.ext, { row: 2, col: 3, rowspan: 2, colspan: 2, depth: 2 })
+  const cc = c.children?.[1] as GroupColumn
+  assertEquals(cc?.children?.length, 2)
+  assertEquals(cc?.children?.[0]?.ext, { row: 3, col: 3, rowspan: 1, colspan: 1, depth: 1 })
+  assertEquals(cc?.children?.[1]?.ext, { row: 3, col: 4, rowspan: 1, colspan: 1, depth: 1 })
+})
+
+Deno.test('flattenColumnByChildren', () => {
+  const columns: HeadColumn[] = [
+    { key: 'l0', label: 'l0' },
+    {
+      key: 'l1',
+      label: 'l1',
+      children: [
+        { key: 'l10', label: 'l10' },
+        { key: 'l11', label: 'l11', children: [{ key: 'l110', label: 'l110' }] },
+      ],
+    },
+  ]
+  const flatten = flattenColumnByChildren(columns)
+  assertEquals(flatten.length, 5)
+  assertEquals(flatten[0], columns[0])
+  assertEquals(flatten[1], columns[1])
+  assertEquals(flatten[2], (columns[1] as GroupColumn).children[0])
+  assertEquals(flatten[3], (columns[1] as GroupColumn).children[1])
+  assertEquals(flatten[4], ((columns[1] as GroupColumn).children[1] as GroupColumn).children[0])
+})
+
+const style: CellStyle = {
+  alignment: { vertical: 'middle' },
+  border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } },
+}
+
+Deno.test('recursiveGenDataCell', async () => {
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Sheet1')
+  const datas: Record<string, unknown>[] = [
+    {
+      k: 't0',
+      a: [
+        { k: 'a00', ext: { rowspan: 1 } },
+        { k: 'a01', b: [{ k: 'a01b0' }], ext: { rowspan: 1 } },
+        { k: 'a02', b: [{ k: 'a02b0' }, { k: 'a02b1' }], ext: { rowspan: 2 } },
+      ],
+      ext: { rowspan: 4 },
+    },
+    {
+      k: 't1',
+      a: [
+        { k: 'a10', b: [{ k: 'a10b0' }, { k: 'a10b1' }], ext: { rowspan: 2 } },
+        { k: 'a11', ext: { rowspan: 1 } },
+      ],
+      ext: { rowspan: 3 },
+    },
+  ]
+
+  const startRow = 3
+  // column 1
+  let row = startRow, col = 2
+  ws.getCell(row - 1, col).value = 'k'
+  for (const data of datas) {
+    row = recursiveGenDataRowCell(['k'], data, {
+      ws,
+      row: row,
+      col: col,
+      style,
+    })
+  }
+
+  // column 2
+  row = startRow, col++
+  ws.getCell(row - 1, col).value = 'a.k'
+  for (const data of datas) {
+    row = recursiveGenDataRowCell(['a', 'k'], data, {
+      ws,
+      row: row,
+      col: col,
+      style,
+    })
+  }
+
+  // column 3
+  row = startRow, col++
+  ws.getCell(row - 1, col).value = 'a.b.k'
+  for (const data of datas) {
+    row = recursiveGenDataRowCell(['a', 'b', 'k'], data, {
+      ws,
+      row: row,
+      col: col,
+      style,
+    })
+  }
+
+  await wb.xlsx.writeFile('temp/recursive_gen_data_cell.xlsx')
+})
+
+Deno.test('convertCacadeArrayKey2ObjectKey', () => {
+  assertEquals(convertCacadeArrayKey2ObjectKey([]), {})
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a']]), { a: 0 })
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a', 'b']]), { a: { b: 0 } })
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a'], ['a', 'b']]), { a: { b: 0 } })
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a', 'b'], ['a']]), { a: { b: 0 } })
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a', 'b'], ['c'], ['a']]), { a: { b: 0 }, c: 0 })
+  assertEquals(convertCacadeArrayKey2ObjectKey([['a', 'b', 'c'], ['d'], ['a', 'b']]), { a: { b: { c: 0 } }, d: 0 })
+})
+
+Deno.test('recursiveGenDataRowExtProperties', async (test) => {
+  await test.step('case 1', () => {
+    assertEquals(recursiveGenDataRowExtProperties([]), 1)
+    assertEquals(recursiveGenDataRowExtProperties([], { startRow: 2 }), 2)
+  })
+
+  await test.step('case 2', () => {
+    const dataRows: DataRow[] = [{}]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows)
+    assertEquals(nextRow, 2)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 3', () => {
+    const dataRows: DataRow[] = [{}]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: 0 } })
+    assertEquals(nextRow, 2)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 4', () => {
+    const dataRows: DataRow[] = [{ a: [] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 } } })
+    assertEquals(nextRow, 2)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 5', () => {
+    const dataRows: DataRow[] = [{ a: [{ b: [] }] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 } } })
+    assertEquals(nextRow, 2)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 6', () => {
+    const dataRows: DataRow[] = [{ a: [{ b: [{}] }] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 } } })
+    assertEquals(nextRow, 2)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 7', () => {
+    const dataRows: DataRow[] = [{ a: [{ b: [{}, {}] }] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 } } })
+    assertEquals(nextRow, 3)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 2 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 2 })
+  })
+
+  await test.step('case 8', () => {
+    const dataRows: DataRow[] = [{ a: [{}, { b: [{}, {}] }] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 } } })
+    assertEquals(nextRow, 4)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 3 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].ext, { row: 2, rowspan: 2 })
+    assertEquals(dataRows[0].a[1].b[0].ext, { row: 2, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].b[1].ext, { row: 3, rowspan: 1 })
+  })
+
+  await test.step('case 9', () => {
+    const dataRows: DataRow[] = [{ a: [{}, { b: [{}, {}] }], c: [{}] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 }, c: 0 } })
+    assertEquals(nextRow, 4)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 3 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].ext, { row: 2, rowspan: 2 })
+    assertEquals(dataRows[0].a[1].b[0].ext, { row: 2, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].b[1].ext, { row: 3, rowspan: 1 })
+    assertEquals(dataRows[0].c[0].ext, { row: 1, rowspan: 1 })
+  })
+
+  await test.step('case 10', () => {
+    const dataRows: DataRow[] = [{ a: [{}, { b: [{}, {}] }], c: [{}, {}, {}, {}] }]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 }, c: 0 } })
+    assertEquals(nextRow, 5)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 4 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].ext, { row: 2, rowspan: 2 })
+    assertEquals(dataRows[0].a[1].b[0].ext, { row: 2, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].b[1].ext, { row: 3, rowspan: 1 })
+    ;(dataRows[0].c as DataRow[]).forEach((c, i) => assertEquals(c.ext, { row: 1 + i, rowspan: 1 }))
+  })
+
+  await test.step('case 11', () => {
+    const dataRows: DataRow[] = [{ a: [{}, { b: [{}, {}] }], c: [{}, {}, {}, {}] }, {}]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 }, c: 0 } })
+    assertEquals(nextRow, 6)
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 4 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].ext, { row: 2, rowspan: 2 })
+    assertEquals(dataRows[0].a[1].b[0].ext, { row: 2, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].b[1].ext, { row: 3, rowspan: 1 })
+    ;(dataRows[0].c as DataRow[]).forEach((c, i) => assertEquals(c.ext, { row: 1 + i, rowspan: 1 }))
+  })
+
+  await test.step('case 12', () => {
+    const dataRows: DataRow[] = [
+      { a: [{}, { b: [{}, {}] }], c: [{}, {}] },
+      { a: [{ b: [{}, {}] }], c: [{}, {}, {}] },
+    ]
+    const nextRow = recursiveGenDataRowExtProperties(dataRows, { cascadeKey: { a: { b: 0 }, c: 0 } })
+    assertEquals(nextRow, 7)
+
+    // dataRow[0]
+    assertEquals(dataRows[0].ext, { row: 1, rowspan: 3 })
+    assertEquals(dataRows[0].a[0].ext, { row: 1, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].ext, { row: 2, rowspan: 2 })
+    assertEquals(dataRows[0].a[1].b[0].ext, { row: 2, rowspan: 1 })
+    assertEquals(dataRows[0].a[1].b[1].ext, { row: 3, rowspan: 1 })
+    ;(dataRows[0].c as DataRow[]).forEach((c, i) => assertEquals(c.ext, { row: 1 + i, rowspan: 1 }))
+
+    // dataRow[1]
+    assertEquals(dataRows[1].ext, { row: 4, rowspan: 3 })
+    assertEquals(dataRows[1].a[0].ext, { row: 4, rowspan: 2 })
+    assertEquals(dataRows[1].a[0].b[0].ext, { row: 4, rowspan: 1 })
+    assertEquals(dataRows[1].a[0].b[1].ext, { row: 5, rowspan: 1 })
+    ;(dataRows[1].c as DataRow[]).forEach((c, i) => assertEquals(c.ext, { row: 4 + i, rowspan: 1 }))
+  })
 })
 
 Deno.test('gen simple table', async () => {
   // define head-column
   const headColumns: HeadColumn[] = [
-    { id: 'name', label: 'Name', width: 15, valueMapper: (_v, _id, row) => `${row.firstName} ${row.lastName}` },
-    { id: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
-    { id: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
-    { id: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
+    { key: 'name', label: 'Name', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
+    { key: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
+    { key: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
+    { key: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
     {
-      id: 'money',
+      key: 'money',
       label: 'Money',
       width: 22,
       dataCellStyle: { numFmt: '￥#,###,###,##0.00', alignment: { horizontal: 'right' } },
     },
-    { id: 'percent', label: 'Percent', dataCellStyle: { numFmt: '0.00%', alignment: { horizontal: 'right' } } },
+    { key: 'percent', label: 'Percent', dataCellStyle: { numFmt: '0.00%', alignment: { horizontal: 'right' } } },
   ]
 
   // define data-row
@@ -143,15 +390,15 @@ Deno.test('gen simple table', async () => {
   // write to file
   const file = 'temp/sample_simple_table.xlsx'
   await workbook.xlsx.writeFile(file)
-  console.log(`see ${file}`)
+  console.log(`write to file '${file}'`)
 })
 
 Deno.test('gen table with group', async () => {
   // define head-column
   const headColumns: HeadColumn[] = [
-    { id: 'teacher', label: 'Teacher', width: 15, valueMapper: (_v, _id, row) => `${row.firstName} ${row.lastName}` },
+    { key: 'teacher', label: 'Teacher', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
     {
-      id: 'workdate',
+      key: 'workdate',
       label: 'Workdate',
       width: 12,
       dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } },
@@ -159,10 +406,9 @@ Deno.test('gen table with group', async () => {
     {
       label: 'Students',
       children: [
-        { pid: 'students', id: 'name', label: 'Name' },
+        { keys: ['students', 'name'], label: 'Name' },
         {
-          pid: 'students',
-          id: 'birthdate',
+          keys: ['students', 'birthdate'],
           label: 'Birthdate',
           width: 12,
           dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } },
@@ -172,10 +418,9 @@ Deno.test('gen table with group', async () => {
     {
       label: 'Favorites',
       children: [
-        { pid: 'favorites', id: 'name', label: 'Name' },
+        { keys: ['favorites', 'name'], label: 'Name' },
         {
-          pid: 'favorites',
-          id: 'priority',
+          keys: ['favorites', 'priority'],
           label: 'Priority',
           width: 12,
           dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
@@ -185,8 +430,7 @@ Deno.test('gen table with group', async () => {
   ]
 
   // define data-row
-  // deno-lint-ignore no-explicit-any
-  const dataRows: Record<string, any>[] = [
+  const dataRows = [
     { firstName: 'John', lastName: 'Smith', workdate: '2000-01-01' },
     {
       firstName: 'Li',
@@ -247,5 +491,5 @@ Deno.test('gen table with group', async () => {
   // write to file
   const file = 'temp/sample_table_with_group.xlsx'
   await workbook.xlsx.writeFile(file)
-  console.log(`see ${file}`)
+  console.log(`write to file '${file}'`)
 })

@@ -6,7 +6,7 @@ JS xlsx tools base on [ExcelJS].
 
 Click [here](./assets/sample.xlsx) to download excel sample file.
 
-### Generate a single sheet simple table
+### Generate a simple table
 
 ![](./assets/sample_simple_table.png)
 
@@ -16,17 +16,17 @@ import type { HeadColumn } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
 
 // define head-column
 const headColumns: HeadColumn[] = [
-  { id: 'name', label: 'Name', width: 15, valueMapper: (_v, _id, row) => `${row.firstName} ${row.lastName}` },
-  { id: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
-  { id: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
-  { id: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
+  { key: 'name', label: 'Name', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
+  { key: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
+  { key: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
+  { key: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
   {
-    id: 'money',
+    key: 'money',
     label: 'Money',
     width: 22,
     dataCellStyle: { numFmt: '￥#,###,###,##0.00', alignment: { horizontal: 'right' } },
   },
-  { id: 'percent', label: 'Percent', dataCellStyle: { numFmt: '0.00%', alignment: { horizontal: 'right' } } },
+  { key: 'percent', label: 'Percent', dataCellStyle: { numFmt: '0.00%', alignment: { horizontal: 'right' } } },
 ]
 
 // define data-row
@@ -54,7 +54,7 @@ const dataRows = [
   },
 ]
 
-// generate a workbook
+// generate a Workbook
 const workbook = await genSingleSheetWorkbook({
   headColumns,
   dataRows,
@@ -106,7 +106,7 @@ const workbook = await genSingleSheetWorkbook({
 })
 
 // write to file
-await workbook.xlsx.writeFile('temp/table1.xlsx')
+await workbook.xlsx.writeFile('sample.xlsx')
 
 // or send through standard Response
 const response = new Response(await workbook.xlsx.writeBuffer(), {
@@ -125,11 +125,14 @@ const response = new Response(await workbook.xlsx.writeBuffer(), {
 ![](./assets/sample_table_with_group.png)
 
 ```ts
+import { genSingleSheetWorkbook } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
+import type { HeadColumn } from 'https://deno.land/x/nextrj_xlsx/mod.ts'
+
 // define head-column
 const headColumns: HeadColumn[] = [
-  { id: 'teacher', label: 'Teacher', width: 15, valueMapper: (_v, _id, row) => `${row.firstName} ${row.lastName}` },
+  { key: 'teacher', label: 'Teacher', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
   {
-    id: 'workdate',
+    key: 'workdate',
     label: 'Workdate',
     width: 12,
     dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } },
@@ -137,10 +140,9 @@ const headColumns: HeadColumn[] = [
   {
     label: 'Students',
     children: [
-      { pid: 'students', id: 'name', label: 'Name' },
+      { keys: ['students', 'name'], label: 'Name' },
       {
-        pid: 'students',
-        id: 'birthdate',
+        keys: ['students', 'birthdate'],
         label: 'Birthdate',
         width: 12,
         dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } },
@@ -150,10 +152,9 @@ const headColumns: HeadColumn[] = [
   {
     label: 'Favorites',
     children: [
-      { pid: 'favorites', id: 'name', label: 'Name' },
+      { keys: ['favorites', 'name'], label: 'Name' },
       {
-        pid: 'favorites',
-        id: 'priority',
+        keys: ['favorites', 'priority'],
         label: 'Priority',
         width: 12,
         dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
@@ -163,8 +164,7 @@ const headColumns: HeadColumn[] = [
 ]
 
 // define data-row
-// deno-lint-ignore no-explicit-any
-const dataRows: Record<string, any>[] = [
+const dataRows = [
   { firstName: 'John', lastName: 'Smith', workdate: '2000-01-01' },
   {
     firstName: 'Li',
