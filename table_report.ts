@@ -18,7 +18,7 @@ export type ColumnShareProperties = {
 
 export type DirectDataColumn = ColumnShareProperties & {
   key: string
-  value?: ValueMapper
+  mapper?: ValueMapper
 }
 
 export type CascadeDataColumn = Omit<DirectDataColumn, 'key'> & {
@@ -86,11 +86,8 @@ export type Table = {
 }
 
 /** Map the origin value to anthor value */
-export type ValueMapper =
-  // deno-lint-ignore no-explicit-any
-  | ((value: any) => any)
-  // deno-lint-ignore no-explicit-any
-  | ((value: any, row: DataRow) => any)
+// deno-lint-ignore no-explicit-any
+export type ValueMapper = ({ value, index, row }: { value: any; index: number; row: DataRow }) => any
 
 /** Define something like `{a: {b: {c: 0}}, d: 0}`
  * - Note: `0` means the leaf
@@ -444,7 +441,7 @@ function genAllDataRowCells(dataRows: DataRow[], ws: ExcelJS.Worksheet, { headCo
   recursiveGenDataRowExtProperties(dataRows, { cascadeKey, startRow })
 
   // gen data-row-cells line by line
-  dataRows?.forEach((dataRow) => genDataRowCells(dataRow, dataColumns, ws))
+  dataRows?.forEach((dataRow, index) => genDataRowCells(dataRow, dataColumns, { ws, index }))
 }
 
 /** Flatten column by children.
@@ -605,17 +602,22 @@ function _recursiveGenDataRowExtProperties(
   return ext
 }
 
-function genDataRowCells(dataRow: DataRow, dataColumns: DataColumn[], ws: ExcelJS.Worksheet): void {
+function genDataRowCells(
+  dataRow: DataRow,
+  dataColumns: DataColumn[],
+  { ws, index }: { ws: ExcelJS.Worksheet; index: number },
+): void {
   dataColumns.forEach((c) => {
     recursiveGenDataRowCell(
       Object.hasOwn(c, 'keys') ? (c as CascadeDataColumn).keys : [(c as DirectDataColumn).key],
       dataRow,
       {
         ws,
+        index,
         row: dataRow.ext!.row,
         col: c.ext!.col,
         style: c.ext!.dataCellStyle,
-        mapper: c.value,
+        mapper: c.mapper,
       },
     )
   })
@@ -628,8 +630,9 @@ export function recursiveGenDataRowCell(
   keys: string[],
   // deno-lint-ignore no-explicit-any
   data: Record<string, any>,
-  { ws, row, col, style, mapper }: {
+  { ws, index, row, col, style, mapper }: {
     ws: ExcelJS.Worksheet
+    index: number
     row: number
     col: number
     style?: CellStyle
@@ -638,7 +641,7 @@ export function recursiveGenDataRowCell(
 ): number {
   if (keys.length === 1) {
     const key = keys[0]
-    const value = mapper ? mapper(data[key], data) : data[key]
+    const value = mapper ? mapper({ value: data[key], index: index, row: data }) : data[key]
     genDataCell({ ws, row, col, value, style })
 
     const rowspan = data.ext?.rowspan || 1
@@ -659,10 +662,12 @@ export function recursiveGenDataRowCell(
   } else {
     const keysClone = [...keys]
     const key = keysClone.shift()!
-    const value = data[key] || [{}] // default single empty object array for write empty cell
-    let nextRow: number = row
-    for (const data of (value as Record<string, unknown>[])) {
-      nextRow = recursiveGenDataRowCell(keysClone, data, { ws, row: nextRow, col, style })
+    const value = data[key] //|| [{}] // default single empty object array for write empty cell
+    let nextRow = row
+    if (value) {
+      ;(value as Record<string, unknown>[]).forEach((data, index) => {
+        nextRow = recursiveGenDataRowCell(keysClone, data, { ws, index, row: nextRow, col, style, mapper })
+      })
     }
     return nextRow
   }

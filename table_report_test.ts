@@ -128,38 +128,41 @@ Deno.test('recursiveGenDataCell', async () => {
   // column 1
   let row = startRow, col = 2
   ws.getCell(row - 1, col).value = 'k'
-  for (const data of datas) {
+  datas.forEach((data, index) => {
     row = recursiveGenDataRowCell(['k'], data, {
       ws,
+      index,
       row: row,
       col: col,
       style,
     })
-  }
+  })
 
   // column 2
   row = startRow, col++
   ws.getCell(row - 1, col).value = 'a.k'
-  for (const data of datas) {
+  datas.forEach((data, index) => {
     row = recursiveGenDataRowCell(['a', 'k'], data, {
       ws,
+      index,
       row: row,
       col: col,
       style,
     })
-  }
+  })
 
   // column 3
   row = startRow, col++
   ws.getCell(row - 1, col).value = 'a.b.k'
-  for (const data of datas) {
+  datas.forEach((data, index) => {
     row = recursiveGenDataRowCell(['a', 'b', 'k'], data, {
       ws,
+      index,
       row: row,
       col: col,
       style,
     })
-  }
+  })
 
   await wb.xlsx.writeFile('temp/recursive_gen_data_cell.xlsx')
 })
@@ -298,9 +301,16 @@ Deno.test('recursiveGenDataRowExtProperties', async (test) => {
 Deno.test('gen simple table', async () => {
   // define head-column
   const headColumns: HeadColumn[] = [
-    { key: 'name', label: 'Name', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
+    {
+      key: 'sn',
+      label: 'SN',
+      width: 5,
+      mapper: ({ index }) => index + 1,
+      dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+    },
+    { key: 'name', label: 'Name', width: 15, mapper: ({ row }) => `${row.firstName} ${row.lastName}` },
     { key: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
-    { key: 'int', label: 'Int', dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } } },
+    { key: 'int', label: 'Int', dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } } },
     { key: 'decimal', label: 'Decimal', dataCellStyle: { numFmt: '#0.00', alignment: { horizontal: 'right' } } },
     {
       key: 'money',
@@ -396,7 +406,14 @@ Deno.test('gen simple table', async () => {
 Deno.test('gen table with group', async () => {
   // define head-column
   const headColumns: HeadColumn[] = [
-    { key: 'teacher', label: 'Teacher', width: 15, value: (_v, r) => `${r.firstName} ${r.lastName}` },
+    {
+      key: 'sn',
+      label: 'SN',
+      width: 5,
+      mapper: ({ index }) => index + 1,
+      dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+    },
+    { key: 'teacher', label: 'Teacher', width: 15, mapper: ({ row }) => `${row.firstName} ${row.lastName}` },
     {
       key: 'workdate',
       label: 'Workdate',
@@ -406,6 +423,13 @@ Deno.test('gen table with group', async () => {
     {
       label: 'Students',
       children: [
+        {
+          keys: ['students', 'sn'],
+          label: 'SN',
+          width: 5,
+          mapper: ({ index }) => index + 1,
+          dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+        },
         { keys: ['students', 'name'], label: 'Name' },
         {
           keys: ['students', 'birthdate'],
@@ -418,6 +442,13 @@ Deno.test('gen table with group', async () => {
     {
       label: 'Favorites',
       children: [
+        {
+          keys: ['favorites', 'sn'],
+          label: 'SN',
+          width: 5,
+          mapper: ({ index }) => index + 1,
+          dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+        },
         { keys: ['favorites', 'name'], label: 'Name' },
         {
           keys: ['favorites', 'priority'],
@@ -440,9 +471,9 @@ Deno.test('gen table with group', async () => {
         { name: 'Suson', birthdate: '2023-12-01' },
       ],
       favorites: [
-        { priority: 1, name: 'Draw' },
-        { priority: 2, name: 'Math' },
-        { priority: 3, name: 'Sport' },
+        { priority: 10, name: 'Draw' },
+        { priority: 30, name: 'Math' },
+        { priority: 20, name: 'Sport' },
       ],
     },
     {
