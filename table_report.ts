@@ -618,6 +618,7 @@ function genDataRowCells(
         col: c.ext!.col,
         style: c.ext!.dataCellStyle,
         mapper: c.mapper,
+        minRowCount: dataRow.ext!.rowspan,
       },
     )
   })
@@ -630,15 +631,17 @@ export function recursiveGenDataRowCell(
   keys: string[],
   // deno-lint-ignore no-explicit-any
   data: Record<string, any>,
-  { ws, index, row, col, style, mapper }: {
+  { ws, index, row, col, style, mapper, minRowCount = 1 }: {
     ws: ExcelJS.Worksheet
     index: number
     row: number
     col: number
     style?: CellStyle
     mapper?: ValueMapper
+    minRowCount?: number
   },
 ): number {
+  let nextRow = row
   if (keys.length === 1) {
     const key = keys[0]
     const value = mapper ? mapper({ value: data[key], index: index, row: data }) : data[key]
@@ -654,23 +657,34 @@ export function recursiveGenDataRowCell(
         right: col,
       })
       // return next row
-      return row + rowspan
+      nextRow = row + rowspan
     } else {
       // return next row
-      return row + 1
+      nextRow = row + 1
     }
   } else {
     const keysClone = [...keys]
     const key = keysClone.shift()!
     const value = data[key] //|| [{}] // default single empty object array for write empty cell
-    let nextRow = row
     if (value) {
       ;(value as Record<string, unknown>[]).forEach((data, index) => {
         nextRow = recursiveGenDataRowCell(keysClone, data, { ws, index, row: nextRow, col, style, mapper })
       })
     }
-    return nextRow
   }
+
+  // just set style for all missing rows
+  if (style) {
+    const missingRowCount = minRowCount - (nextRow - row)
+    if (missingRowCount > 0) {
+      for (let i = 0; i < missingRowCount; i++) {
+        ws.getCell(nextRow + i, col).style = style
+      }
+    }
+  }
+
+  // return next row
+  return nextRow
 }
 
 function genDataCell(

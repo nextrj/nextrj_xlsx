@@ -306,7 +306,7 @@ Deno.test('gen simple table', async () => {
       label: 'SN',
       width: 5,
       mapper: ({ index }) => index + 1,
-      dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+      dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
     },
     { key: 'name', label: 'Name', width: 15, mapper: ({ row }) => `${row.firstName} ${row.lastName}` },
     { key: 'date', width: 12, dataCellStyle: { numFmt: 'yyyy-MM-dd', alignment: { horizontal: 'center' } } },
@@ -392,7 +392,7 @@ Deno.test('gen simple table', async () => {
       fitToPage: true,
       fitToWidth: 1,
       fitToHeight: 0,
-      printArea: 'A:F',
+      printArea: 'A:G',
       printTitlesRow: '2:2',
     },
   })
@@ -411,7 +411,7 @@ Deno.test('gen table with group', async () => {
       label: 'SN',
       width: 5,
       mapper: ({ index }) => index + 1,
-      dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+      dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
     },
     { key: 'teacher', label: 'Teacher', width: 15, mapper: ({ row }) => `${row.firstName} ${row.lastName}` },
     {
@@ -428,7 +428,7 @@ Deno.test('gen table with group', async () => {
           label: 'SN',
           width: 5,
           mapper: ({ index }) => index + 1,
-          dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+          dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
         },
         { keys: ['students', 'name'], label: 'Name' },
         {
@@ -447,7 +447,7 @@ Deno.test('gen table with group', async () => {
           label: 'SN',
           width: 5,
           mapper: ({ index }) => index + 1,
-          dataCellStyle: { numFmt: '#0', alignment: { horizontal: 'right' } },
+          dataCellStyle: { numFmt: '#', alignment: { horizontal: 'right' } },
         },
         { keys: ['favorites', 'name'], label: 'Name' },
         {
@@ -513,9 +513,9 @@ Deno.test('gen table with group', async () => {
     sheetView: {
       showGridLines: false,
       state: 'frozen',
-      xSplit: 1,
+      xSplit: 2,
       ySplit: 4,
-      activeCell: 'B5',
+      activeCell: 'C5',
     },
   })
 
