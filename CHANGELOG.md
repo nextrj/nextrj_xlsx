@@ -1,5 +1,13 @@
 # nextrj_xlsx changelog
 
+## 0.5.0 2024-04-17
+
+- Refactor `ValueMapper` signature and rename `HeadColumn.value` to `.mapper`
+  ```json
+  { key: 'name', label: 'Name', width: 15, mapper: ({ row }) =>`${row.firstName} ${row.lastName}`}
+  ```
+- Fixed missing-rows style
+
 ## 0.4.0 2024-04-15
 
 - Totally refactor to support multiple nested data-row

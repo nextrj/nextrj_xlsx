@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   // no deno.lock file
   "lock": false,
   "compilerOptions": {
